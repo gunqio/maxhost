@@ -1,0 +1,48 @@
+name: Maxhost 自动续期服务
+
+# 触发条件配置
+on:
+  schedule:
+    # 定时任务：每天北京时间早上 08:00 运行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 开启手动触发按钮
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 拉取仓库中的代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 2. 部署 Python 运行环境（已移除缓存触发）
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 3. 安装自动化核心依赖 Playwright 及配套的 Chromium 浏览器
+      - name: 安装依赖与自动化浏览器
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      # 4. 核心：注入 Secrets 隐私变量并执行续期脚本
+      - name: 运行续期脚本
+        env:
+          MAXHOST_EMAIL: ${{ secrets.MAXHOST_EMAIL }}
+          MAXHOST_PASSWORD: ${{ secrets.MAXHOST_PASSWORD }}
+          PROXY_URL: ${{ secrets.PROXY_URL }}
+          MAXHOST_COOKIES: ${{ secrets.MAXHOST_COOKIES }}
+        run: python renew.py
+
+      # 5. 如果运行失败，把错误截图上传到 GitHub 方便你排查
+      - name: 上传错误/运行截图 (仅保留 3 天)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: execution-screenshots
+          path: |
+            *.png
+          retention-days: 3
