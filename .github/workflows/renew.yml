@@ -12,9 +12,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 拉取仓库中的代码
-      - name: 检出代码
+      # 1. 🌟【已修改】：使用 PAT 令牌跨仓库拉取你的私有仓库代码
+      - name: 检出私有仓库代码
         uses: actions/checkout@v4
+        with:
+          repository: 'gunqio/zhiyong' # 你的私库地址
+          token: ${{ secrets.GH_PAT }}   # 访问私库必备的授权令牌
 
       # 2. 部署 Python 运行环境
       - name: 设置 Python 环境
@@ -28,31 +31,28 @@ jobs:
           pip install playwright
           playwright install chromium
 
-      # 🌟【必须新增的步骤】：从 GitHub Secrets 中安全读取 JSON 变量并全自动启动 Xray 代理
+      # 4. 从变量中动态读取 JSON 并启动 Xray 转换核心
       - name: 启动本地 Xray 转换代理
         env:
           XRAY_CONFIG_DATA: ${{ secrets.XRAY_CONFIG_JSON }}
         run: |
-          # 下载官方最新版 Xray 核心
           curl -L -s https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
           unzip -q xray.zip xray
           chmod +x xray
-          # 将你在 Secrets 里填写的密文 JSON 释放并写入到本地运行环境中
           echo "$XRAY_CONFIG_DATA" > xray_config.json
-          # 在后台静默启动 Xray 代理服务
           ./xray run -c xray_config.json > /dev/null 2>&1 &
           sleep 3
 
-      # 4. 核心：注入 Secrets 隐私变量并执行续期脚本
+      # 5. 核心：注入 Secrets 隐私变量并执行续期脚本
       - name: 运行续期脚本
         env:
           MAXHOST_EMAIL: ${{ secrets.MAXHOST_EMAIL }}
           MAXHOST_PASSWORD: ${{ secrets.MAXHOST_PASSWORD }}
           PROXY_URL: ${{ secrets.PROXY_URL }}
           MAXHOST_COOKIES: ${{ secrets.MAXHOST_COOKIES }}
-        run: python renew.py
+        run: python maxhost.py # 🌟【已修改】：脚本文件名已改为 maxhost.py
 
-      # 5. 如果运行失败，把错误截图上传到 GitHub 方便你排查
+      # 6. 如果运行失败，把错误截图上传到 GitHub 方便你排查
       - name: 上传错误/运行截图 (仅保留 3 天)
         uses: actions/upload-artifact@v4
         if: always()
