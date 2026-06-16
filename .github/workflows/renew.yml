@@ -16,7 +16,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      # 2. 部署 Python 运行环境（已移除缓存触发）
+      # 2. 部署 Python 运行环境
       - name: 设置 Python 环境
         uses: actions/setup-python@v5
         with:
@@ -27,6 +27,21 @@ jobs:
         run: |
           pip install playwright
           playwright install chromium
+
+      # 🌟【必须新增的步骤】：从 GitHub Secrets 中安全读取 JSON 变量并全自动启动 Xray 代理
+      - name: 启动本地 Xray 转换代理
+        env:
+          XRAY_CONFIG_DATA: ${{ secrets.XRAY_CONFIG_JSON }}
+        run: |
+          # 下载官方最新版 Xray 核心
+          curl -L -s https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
+          unzip -q xray.zip xray
+          chmod +x xray
+          # 将你在 Secrets 里填写的密文 JSON 释放并写入到本地运行环境中
+          echo "$XRAY_CONFIG_DATA" > xray_config.json
+          # 在后台静默启动 Xray 代理服务
+          ./xray run -c xray_config.json > /dev/null 2>&1 &
+          sleep 3
 
       # 4. 核心：注入 Secrets 隐私变量并执行续期脚本
       - name: 运行续期脚本
