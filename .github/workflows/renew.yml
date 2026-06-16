@@ -4,7 +4,7 @@ name: Maxhost 自动续期服务
 on:
   schedule:
     # 定时任务：每天北京时间早上 08:00 运行
-    - cron: '0 0 * * *'
+    - cron: '40 0 */5 * *'
   workflow_dispatch: # 开启手动触发按钮
 
 jobs:
